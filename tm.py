@@ -87,6 +87,22 @@ def user_diff(df, name, filterval=None):
     return sol
 
 
+def gen_time_fig_diff(df, title="", datefmt=r"%d.%m.%Y"):
+    users = np.unique(df.user)
+    n = len(users)
+    fig, axes = plt.subplots(n // 4, 4, sharex=False, sharey=True)
+    fig.set_size_inches(12, 4 * (n // 4))
+    for user, ax in zip(users, axes.ravel()):
+        data = user_diff(df, user, filterval=1000)
+        # data = np.clip(data, 0, 10)
+        ax.plot(data)
+        ax.set_xlabel(user + "[%d]" % np.sum(df.user == user))
+        ax.set_ylim([0, 10])
+    fig.tight_layout()
+    fig.suptitle(title + " from %s to %s" % (np.min(df.date).strftime(datefmt), np.max(df.date).strftime(datefmt),))
+    return fig
+
+
 def gen_fig_diff(df, title="", filterval=10, datefmt=r"%d.%m.%Y"):
     users = np.unique(df.user)
     n = len(users)
