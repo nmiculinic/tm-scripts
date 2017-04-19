@@ -83,7 +83,8 @@ def user_diff(df, name, filterval=None):
     for s1, s2 in zip(user.date, user.date[1:]):
         sol.append(mdates[np.logical_and(s1 < mdates, mdates < s2)].shape[0])
     sol = np.array(sol)
-    sol[sol > filterval] = filterval
+    if filterval is not None:
+        sol[sol > filterval] = filterval
     return sol
 
 
