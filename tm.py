@@ -24,7 +24,7 @@ def read_role_report(fname):
 
         sol.append((
             current_user,
-            awards,
+            tuple(awards),
             pd.to_datetime(tds[1].string.strip()),
             tds[2].string.strip()
         ))
@@ -55,7 +55,7 @@ def read_speech_history(fname):
 
             sol.append((
                 current_user,
-                awards,
+                tuple(awards),
                 pd.to_datetime(tds[1].string.strip()),
                 tds[2].string,
                 tds[3].string,
