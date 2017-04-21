@@ -61,7 +61,7 @@ print(age_df)
 print("Num_speeches")
 num_speeches = pd.DataFrame(
     {'count':
-     df[df.role.str.contains(r"(Speaker)|(Speech)")].groupby(["user"]).size()
+     df[df.role.str.contains(r"(Speaker)|(Speech)")].groupby(["user", "awards"]).size()
      }
 ).reset_index()
 print(num_speeches)
@@ -69,25 +69,40 @@ print(num_speeches)
 norm.autoscale(age_df["age"])
 cm = mpl.cm.get_cmap('OrRd')
 
-dot = Digraph(name="Mentorship", engine='neato', graph_attr={'fontname': "hack", "bgcolor": "#EAEAF2"})
-dot.body.extend(['overlap=false', 'node [fontname = "hack"]', 'edge [fontname = "hack"]'])
+dot = Digraph(
+    name="Mentorship",
+    engine='neato',
+    graph_attr={'fontname': "Noto Sans", "bgcolor": "#EAEAF2"},
+    node_attr={'fontname': "Noto Sans", "style": "filled"},
+    edge_attr={'fontname': "Noto Sans"}
+)
+dot.body.extend(['overlap=false'])
+
 
 def hhh(x):
     return str(hash(frozenset(map(str.strip, x.split()))))
 
+
 for user, mentor in zip(users, mentors):
     if user.strip() == "":
         continue
+
+    attrs = {}
+
     current_user_age = np.array(age_df[age_df.user == user]["age"]).ravel().item()
     r, b, g, _ = list(map(int, 255.9 * np.array(cm(norm(current_user_age)))))
+    attrs["color"] = "#%02x%02x%02x" % (r, b, g)
 
-    num_speeches_user = num_speeches[num_speeches.user == mapping[user]]["count"].as_matrix().ravel()
+    user_row = num_speeches[num_speeches.user == mapping[user]]
+    num_speeches_user = user_row["count"].as_matrix().ravel()
     if len(num_speeches_user) == 0:
         num_speeches_user = 0
+        attrs["shape"] = "diamond"
     else:
         num_speeches_user = num_speeches_user.item()
-    print(user, num_speeches_user)
-    dot.node(hhh(user), user + "[%d]" % num_speeches_user, color="#%02x%02x%02x" % (r, b, g), style="filled")
+        if len(user_row["awards"].tolist()[0]) > 0:
+            attrs["shape"] = "box"
+    dot.node(hhh(user), user + "[%d]" % num_speeches_user, **attrs)
     dot.edge(hhh(user), hhh(mentor))
 
 dot.render("mentorship.dot")
