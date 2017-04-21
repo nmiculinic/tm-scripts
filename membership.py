@@ -6,6 +6,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from graphviz import Digraph
 import numpy as np
 import edlib
+import tm
+
 
 def createMapping(set_a, set_b):
     sol = {}
@@ -25,6 +27,9 @@ def createMapping(set_a, set_b):
                 candidate = sb
                 candidate_val = d
         sol[sa] = candidate
+        if candidate_val > 4:
+            sol[sa] = None
+        print(sa, candidate, candidate_val)
 
     return sol
 
@@ -41,16 +46,32 @@ mentors = list(filter(lambda x: len(x.strip()) > 0, sh.sheet1.col_values(3)[1:])
 df = tm.read_role_report('./RoleHistory.html')
 mapping = createMapping(users, np.unique(df.user))
 
+print("Mapping DEBUG!")
+for k, v in mapping.items():
+    print(k, v)
 
 norm = mpl.colors.Normalize()
-age = [(pd.to_datetime(date.today()) - df[df.user == mapping[user]]["date"].min()).days for user in users]
-age_df = pd.DataFrame.from_dict({"user": users, "age":age})
+age = [(pd.to_datetime(date.today()) - df[df.user == mapping[user]]["date"].min()) for user in users]
+age = [x.days if hasattr(x, 'days') else 0 for x in age]
+age_df = pd.DataFrame.from_dict({"user": users, "age": age})
+
+print("age_df")
+print(age_df)
+
+print("Num_speeches")
+num_speeches = pd.DataFrame(
+    {'count':
+     df[df.role.str.contains(r"(Speaker)|(Speech)")].groupby(["user"]).size()
+     }
+).reset_index()
+print(num_speeches)
 
 norm.autoscale(age_df["age"])
 cm = mpl.cm.get_cmap('OrRd')
 
-dot = Digraph(name="Mentorship", engine='neato')
-dot.body.extend(['overlap=false'])
+dot = Digraph(name="Mentorship", engine='neato', graph_attr={'fontname': "hack", "bgcolor": "#EAEAF2"})
+dot.body.extend(['overlap=false', 'node [fontname = "hack"]', 'edge [fontname = "hack"]'])
+
 def hhh(x):
     return str(hash(frozenset(map(str.strip, x.split()))))
 
@@ -60,7 +81,13 @@ for user, mentor in zip(users, mentors):
     current_user_age = np.array(age_df[age_df.user == user]["age"]).ravel().item()
     r, b, g, _ = list(map(int, 255.9 * np.array(cm(norm(current_user_age)))))
 
-    dot.node(hhh(user), user, color="#%02x%02x%02x" % (r, b, g), style="filled")
+    num_speeches_user = num_speeches[num_speeches.user == mapping[user]]["count"].as_matrix().ravel()
+    if len(num_speeches_user) == 0:
+        num_speeches_user = 0
+    else:
+        num_speeches_user = num_speeches_user.item()
+    print(user, num_speeches_user)
+    dot.node(hhh(user), user + "[%d]" % num_speeches_user, color="#%02x%02x%02x" % (r, b, g), style="filled")
     dot.edge(hhh(user), hhh(mentor))
 
-dot.render("mentorship.svg")
+dot.render("mentorship.dot")
